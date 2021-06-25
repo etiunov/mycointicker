@@ -2,7 +2,10 @@ import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:core';
+import 'package:intl/intl.dart';
 import 'package:flutter/services.dart' as rootBundle;
+
+// 'https://api.coinpaprika.com/v1/tickers/btc-bitcoin?quotes=EUR,BTC';
 
 const coinHttpAPI = 'https://rest.coinapi.io/v1/exchangerate';
 const apiKey = 'CB8A010A-71A9-4AE6-B9E9-B07800018C7E';
@@ -53,7 +56,7 @@ const List<String> currenciesList = [
 class JsonDecoder {
   JsonDecoder(this.url);
   final String url;
-  Future<Map<String, dynamic>> getCoinData() async {
+  Future<dynamic> getCoinData() async {
     http.Response response = await http.get(
       Uri.parse(url),
     );
@@ -69,16 +72,20 @@ List<String> namesList = [];
 List<String> symbolsList = [];
 List<dynamic> pricesList = [];
 List<dynamic> changeList = [];
-List<double> changeValueList = [];
+List<dynamic> changeValueList = [];
 
 List<dynamic> investmentList = [];
 
 Map<String, dynamic> cryptoPrices = {};
-Map<String, dynamic> cryptoChange = {};
+Map<dynamic, dynamic> cryptoChange = {};
 Map<String, dynamic> cryptoInvestment = {};
 Map<String, dynamic> cryptoIds = {};
 Map<String, dynamic> cryptoNames = {};
 Map<String, dynamic> cryptoSymbols = {};
+
+List<dynamic> daysList = [];
+List<dynamic> historyList = [];
+List<dynamic> chunkedHistoryList = [];
 
 class CoinIdNameSymbol {
   Future getName() async {
@@ -86,7 +93,7 @@ class CoinIdNameSymbol {
     http.Response response = await http.get(Uri.parse(requestURL));
     var rateData = jsonDecode(response.body);
     int num = 0;
-    for (int i = num; i < 30; i++) {
+    for (int i = num; i < 9; i++) {
       var id = rateData[i]["id"].toString();
       var name = rateData[i]["name"].toString();
       var symbol = rateData[i]["symbol"].toString();
@@ -100,58 +107,85 @@ class CoinIdNameSymbol {
 
 class RateData {
   Future getRateData(String selectedCurrency) async {
+    var prices = [];
     for (String id in idList) {
       JsonDecoder jsonDecoder =
           JsonDecoder("$coinPaprikaAPI$id?quotes=$selectedCurrency");
       var coinData = await jsonDecoder.getCoinData();
-      var ids = await coinData["id"];
-      cryptoIds[id] = ids;
-      var names = await coinData["name"];
-      cryptoNames[id] = names;
-      var symbols = await coinData["symbol"];
-      cryptoSymbols[id] = symbols;
+      // var ids = await coinData["id"];
+      // cryptoIds[id] = ids;
+      // var names = await coinData["name"];
+      // cryptoNames[id] = names;
+      // var symbols = await coinData["symbol"];
+      // cryptoSymbols[id] = symbols;
 
       var price = await coinData["quotes"]["$selectedCurrency"]["price"];
-      cryptoPrices[id] = price.toStringAsFixed(0);
-      pricesList.add(price.toStringAsFixed(2));
+      // cryptoPrices[id] = price.toStringAsFixed(3);
+
+      prices.add(double.parse(price.toStringAsFixed(3)));
+
       var percentChange24h =
-          coinData["quotes"]["$selectedCurrency"]["percent_change_24h"];
-      cryptoChange[id] = percentChange24h;
+          coinData["quotes"]["$selectedCurrency"]["percent_change_7d"];
+      // cryptoChange[id] = double.parse(percentChange24h.toStringAsFixed(2));
+
       changeList.add(percentChange24h.toStringAsFixed(2));
-      changeValueList.add(percentChange24h);
+      // changeValueList.add(percentChange24h);
 
       var percentChange1y =
           coinData["quotes"]["$selectedCurrency"]["percent_change_1y"];
-      cryptoInvestment[id] = percentChange1y;
+      // cryptoInvestment[id] = percentChange1y;
       investmentList.add(percentChange1y.toStringAsFixed(0));
     }
-    // var toInt = pricesList.map((e) => e.toInt()).toList();
-    // print(pricesList);
-    // print(changeList);
-    // print(investmentList);
-
-    // print(cryptoIds);
-    // print(cryptoNames);
-    // print(cryptoSymbols);
-    // var toInte = changeList.map((e) => e.toInt()).toList();
-    print(changeValueList);
+    pricesList = prices;
+    // print(cryptoPrices);
   }
-}
 
-class CryptoData {
-  final String name, symbol, currency;
+  Future<void> loadDates() async {
+    daysList.clear();
+    var today = new DateTime.now();
+    var day = new DateFormat('d');
+    for (var i = 7; i > 0; i--) {
+      var addDays = today.subtract(Duration(days: i));
+      var formatted = day.format(addDays);
+      daysList.add(double.parse(formatted));
+    }
+  }
 
-  CryptoData({
-    this.name,
-    this.symbol,
-    this.currency,
-  });
+  Future<dynamic> getHistoricalData() async {
+    var dummyHistory = [];
+    var today = new DateTime.now();
+    var formatter = new DateFormat('yyyy-MM-dd');
+    String formattedDateNow = formatter.format(today);
+    var subtractSevenDays = today.subtract(const Duration(days: 7));
+    String formattedDateAgo = formatter.format(subtractSevenDays);
+    try {
+      for (var id in idList) {
+        for (var i = 0; i < 7; i++) {
+          JsonDecoder jsonDecoder = JsonDecoder(
+              'https://api.coinpaprika.com/v1/coins/$id/ohlcv/historical?start=$formattedDateAgo&end=$formattedDateNow');
+          final List<dynamic> loadHistoryData = await jsonDecoder.getCoinData();
+          var rate = loadHistoryData[i]["open"];
+          dummyHistory.add(double.parse(rate.toStringAsFixed(3)));
+        }
+      }
+      historyList = dummyHistory;
+      print('historyList ${historyList.length}');
+      return historyList;
+    } catch (e) {
+      print(e);
+    }
+  }
 
-  factory CryptoData.fromJson(Map<String, dynamic> data) {
-    return CryptoData(
-      name: data["name"],
-      symbol: data["symbol"],
-      currency: data["quotes"],
-    );
+  Future<void> chunkHistory() async {
+    var history = await getHistoricalData();
+    var chunksList = [];
+    for (var i = 0; i < history.length; i += 7) {
+      chunksList.add(
+        history.sublist(i, i + 7 > history.length ? history.length : i + 7),
+      );
+    }
+    chunkedHistoryList = chunksList;
+    print('chunkedHistoryList ${chunkedHistoryList.length}');
+    return chunksList;
   }
 }

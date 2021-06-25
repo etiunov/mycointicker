@@ -29,9 +29,11 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   http: ^0.13.1
-  intl: ^0.16.0
+  intl: ^0.17.0
   flutter_sticky_header: ^0.6.0
   fl_chart: ^0.36.1
+  syncfusion_flutter_charts: ^19.1.67
+  flutter_sparkline: ^0.1.0
 
 dev_dependencies:
   flutter_test:
@@ -51,7 +53,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/sample.json
-  #   - images/a_dot_ham.jpeg
+    - images/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

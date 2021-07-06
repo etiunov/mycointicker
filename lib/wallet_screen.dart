@@ -1,31 +1,71 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
-import 'abstracted_classes.dart';
-import 'coin_api.dart';
 import 'dart:core';
 import 'dart:io' show Platform;
 import 'dart:math';
 import 'dart:ui';
-import 'package:flutter_sticky_header/flutter_sticky_header.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+
 import 'wallet_card.dart';
+import 'abstracted_classes.dart';
+import 'coin_api.dart';
 
 class HomePage extends StatefulWidget {
+  final Map newCoin;
+
+  const HomePage({this.newCoin});
+
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  List<String> addedCoinList = [
-    'BTC',
-    'ETH',
-  ];
-  String newCoin;
   CoinIdNameSymbol coinIdNameSymbol = CoinIdNameSymbol();
   RateData rateData = RateData();
+  String newCoin;
   String selectedCurrency = 'USD';
   Map<String, String> coinValues = {};
   bool isWaiting = false;
+  double appleCashBalance = 2125.78;
+  double appleCashBalanceUpdated;
+
+  List<String> addedCoinList = [
+    'Litecoin',
+    'Ethereum',
+  ];
+  List<double> coinBalanceList = [
+    15.47,
+    7.89,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    appleCashBalanceUpdated = appleCashBalance;
+    Map receivedCoin = widget.newCoin;
+    print('This is wallet screen $receivedCoin');
+    addReceivedCoin(receivedCoin);
+  }
+
+  void addReceivedCoin(Map receivedCoin) {
+    if (receivedCoin != null) {
+      setState(() {
+        addedCoinList.add(receivedCoin["coinName"].toString());
+        coinBalanceList
+            .add(double.parse(receivedCoin["amountToTrade"].toString()));
+        appleCashBalanceUpdated = appleCashBalance -
+            double.parse(receivedCoin["totalFee"].toString());
+      });
+    }
+  }
+
+  double _getTotalBalance() {
+    var sum;
+    setState(() {
+      sum = coinBalanceList.reduce((value, element) => value + element);
+    });
+
+    return sum;
+  }
 
   void addToWallet(coinName) {
     addedCoinList.add(coinName);
@@ -33,44 +73,36 @@ class _HomePageState extends State<HomePage> {
   }
 
   Color getRandomCardColor() {
-    List colors = [
+    const List colors = [
       Colors.redAccent,
       Colors.blueAccent,
       Colors.purpleAccent,
       Colors.black,
-      Colors.tealAccent,
       Colors.blueGrey,
     ];
     Random random = new Random();
-    int index = random.nextInt(6);
+    int index = random.nextInt(5);
     return colors[index];
   }
 
-  String getRandomImage() {
-    List images = [
-      'btc.png',
-      'eth.png',
-      'ltc.png',
-    ];
-    Random random = new Random();
-    int index = random.nextInt(3);
-    return images[index];
-  }
+  List<String> images = [
+    'ltc.png',
+    'eth.png',
+    'btc.png',
+  ];
 
-  Column walletContainer() {
-    List<WalletCard> walletCards = [];
-    Size size = MediaQuery.of(context).size;
-    double countWidth = size.width * 0.80;
+  Column coinsContainer() {
+    List<WCard> walletCards = [];
     for (var coin in addedCoinList) {
       walletCards.add(
-        WalletCard(
+        WCard(
           firstColor: getRandomCardColor(),
           secondColor: getRandomCardColor(),
-          width: countWidth,
-          height: 200.0,
           coinName: coin,
-          imageName: getRandomImage(),
+          imageName: addedCoinList.lastIndexOf(coin),
           coinIndex: addedCoinList.indexOf(coin),
+          coinsList: addedCoinList,
+          coinBalance: coinBalanceList[addedCoinList.lastIndexOf(coin)],
         ),
       );
     }
@@ -79,70 +111,25 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  dynamic showAddCoinDialog() {
-    if (Platform.isIOS) {
-      return _addCoinCupertinoBottom();
-    } else if (Platform.isAndroid) {
-      return _addCoinMaterialBottom(context);
-    }
-  }
+  Column cardContainer() {
+    List<CCard> cardCards = [];
+    cardCards.add(
+      CCard(
+        cardBalance: appleCashBalanceUpdated,
+        cardName: null,
+        cardNumber: null,
+        cardId: null,
+      ),
+    );
 
-  void _addCoinMaterialBottom(context) {
-    showModalBottomSheet(
-        isScrollControlled: true,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.0),
-        ),
-        context: context,
-        builder: (BuildContext context) {
-          return Container(
-            constraints: BoxConstraints.expand(),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text('Enter coin name'),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Row(
-                      children: [
-                        Container(
-                            width: 300,
-                            child: TextField(
-                              enableSuggestions: true,
-                              onSubmitted: (value) async {
-                                newCoin = value;
-                                Navigator.pop(context);
-                                if (newCoin != null) {
-                                  addToWallet(newCoin);
-                                }
-                              },
-                            )),
-                        // Spacer(),
-                        TextButton(
-                          child: Text(
-                            'Cancel',
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  Divider(),
-                ],
-              ),
-            ),
-          );
-        });
+    return Column(
+      children: cardCards,
+    );
   }
 
   void _addCoinCupertinoBottom() {
     var coinName;
+    var amount;
     showCupertinoModalPopup(
       context: context,
       builder: (context) {
@@ -158,28 +145,33 @@ class _HomePageState extends State<HomePage> {
                       CupertinoFormRow(
                         child: CupertinoTextFormFieldRow(
                           onFieldSubmitted: (value) {
-                            setState(() {
-                              coinName = value;
-                              // if (coinName != null) {
-                              //   addToWallet(coinName);
-                              // }
-                            });
+                            coinName = value;
+                            // setState(() {
+                            //
+                            // });
                             print(coinName);
                           },
                           placeholder: 'Enter coin name',
                         ),
-                        prefix: Text(
-                          'Coin',
+                        prefix: Icon(CupertinoIcons.bitcoin_circle_fill),
+                      ),
+                      CupertinoFormRow(
+                        child: CupertinoTextFormFieldRow(
+                          onFieldSubmitted: (money) {
+                            amount = money;
+                            // setState(() {
+                            //
+                            // });
+                          },
+                          placeholder: 'Enter amount',
                         ),
-                      )
+                        prefix: Icon(CupertinoIcons.money_dollar),
+                      ),
                     ],
                   ),
                 ),
               ),
-              onPressed: () async {
-                // Navigator.of(context).pop();
-                // setState(() {});
-              },
+              onPressed: () {},
             )
           ],
           cancelButton: CupertinoActionSheetAction(
@@ -188,8 +180,10 @@ class _HomePageState extends State<HomePage> {
               setState(() {
                 if (coinName != null) {
                   addToWallet(coinName);
+                  coinBalanceList.add(double.parse(amount));
                 }
               });
+              print(coinBalanceList);
             },
             child: Text("Add"),
           ),
@@ -198,10 +192,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
+  // LoadFancyData loadFancyData = LoadFancyData();
+  // @override
+  // void initState() {
+  //   loadFancyData.loadFancy();
+  //   super.initState();
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -211,8 +207,7 @@ class _HomePageState extends State<HomePage> {
           slivers: [
             CupertinoSliverNavigationBar(
               border: Border(bottom: BorderSide.none),
-              stretch: false,
-              automaticallyImplyTitle: false,
+              stretch: true,
               backgroundColor: Colors.transparent,
               largeTitle: Row(
                 children: [
@@ -224,11 +219,7 @@ class _HomePageState extends State<HomePage> {
                   CupertinoButton(
                     onPressed: () {
                       print("pressed");
-                      setState(
-                        () {
-                          _addCoinCupertinoBottom();
-                        },
-                      );
+                      _addCoinCupertinoBottom();
                     },
                     child: Icon(
                       CupertinoIcons.add_circled_solid,
@@ -242,18 +233,47 @@ class _HomePageState extends State<HomePage> {
               pinned: false,
               floating: true,
               delegate: Delegate(
-                maxE: 120.0,
-                minE: 120.0,
-                delegateChild: Container(
-                  color: Colors.transparent,
-                  height: 600.0,
+                maxE: 140.0,
+                minE: 140.0,
+                delegateChild: Padding(
+                  padding:
+                      const EdgeInsets.only(top: 8.0, left: 18.0, right: 18.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Mark to Market:',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 20.0),
+                          ),
+                          Spacer(),
+                          Text(
+                            '\$ ${_getTotalBalance().toStringAsFixed(2)}',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 20.0),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
             SliverList(
               delegate: SliverChildListDelegate(
                 [
-                  walletContainer(),
+                  coinsContainer(),
+                ],
+              ),
+            ),
+            SliverList(
+              delegate: SliverChildListDelegate(
+                [
+                  SizedBox(
+                    height: 100.0,
+                  ),
+                  cardContainer(),
                 ],
               ),
             ),

@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 
-class RateHistory {
-  final double timeScaleX;
-  final double rateScaleY;
-
-  RateHistory({@required this.timeScaleX, @required this.rateScaleY});
-}
+// class RateHistory {
+//   final double timeScaleX;
+//   final double rateScaleY;
+//
+//   RateHistory({@required this.timeScaleX, @required this.rateScaleY});
+// }
 
 class Delegate extends SliverPersistentHeaderDelegate {
   final Widget delegateChild;

@@ -67,6 +67,8 @@ class JsonDecoder {
   }
 }
 
+class Coins {}
+
 List<String> idList = [];
 List<String> namesList = [];
 List<String> symbolsList = [];
@@ -86,8 +88,13 @@ Map<String, dynamic> cryptoSymbols = {};
 List<dynamic> daysList = [];
 List<dynamic> historyList = [];
 List<dynamic> chunkedHistoryList = [];
+List<double> serviceFeesList = [];
 
 class CoinIdNameSymbol {
+  List<String> idListNot = [];
+  List<String> namesListNot = [];
+  List<String> symbolsListNot = [];
+
   Future getName() async {
     String requestURL = 'https://api.coinpaprika.com/v1/tickers/';
     http.Response response = await http.get(Uri.parse(requestURL));
@@ -97,11 +104,14 @@ class CoinIdNameSymbol {
       var id = rateData[i]["id"].toString();
       var name = rateData[i]["name"].toString();
       var symbol = rateData[i]["symbol"].toString();
-      idList.add(id);
-      namesList.add(name);
-      symbolsList.add(symbol);
+      idListNot.add(id);
+      namesListNot.add(name);
+      symbolsListNot.add(symbol);
     }
-    print(idList);
+    idList = idListNot;
+    namesList = namesListNot;
+    symbolsList = symbolsListNot;
+    print(namesList);
   }
 }
 
@@ -125,7 +135,7 @@ class RateData {
       prices.add(double.parse(price.toStringAsFixed(3)));
 
       var percentChange24h =
-          coinData["quotes"]["$selectedCurrency"]["percent_change_7d"];
+          coinData["quotes"]["$selectedCurrency"]["percent_change_24h"];
       // cryptoChange[id] = double.parse(percentChange24h.toStringAsFixed(2));
 
       changeList.add(percentChange24h.toStringAsFixed(2));
@@ -138,6 +148,25 @@ class RateData {
     }
     pricesList = prices;
     // print(cryptoPrices);
+  }
+
+  Future<void> generateServiceFee() async {
+    var updatedFees;
+    List<double> serviceFeesListNot = [];
+    for (var i in pricesList) {
+      updatedFees = (i * 0.0149 + i * 0.0005);
+      if (updatedFees > 1.0) {
+        serviceFeesListNot.add(
+            double.parse((i = (i * 0.0149 + i * 0.0005)).toStringAsFixed(4)));
+      } else {
+        serviceFeesListNot.add(updatedFees = 0.99);
+      }
+    }
+    serviceFeesList = serviceFeesListNot;
+    print(serviceFeesList);
+    Map<String, dynamic> serviceFeeMap =
+        Map.fromIterables(symbolsList, serviceFeesList);
+    print(serviceFeeMap);
   }
 
   Future<void> loadDates() async {
@@ -189,3 +218,80 @@ class RateData {
     return chunksList;
   }
 }
+
+// class CoinData {
+//   final String id;
+//   final String name;
+//   final String symbol;
+//   final int rank;
+//   final int circulating_supply;
+//   final int total_supply;
+//   final int max_supply;
+//   final double beta_value;
+//   final List quotes;
+//
+//   CoinData(
+//       {this.id,
+//       this.name,
+//       this.symbol,
+//       this.rank,
+//       this.circulating_supply,
+//       this.total_supply,
+//       this.max_supply,
+//       this.beta_value,
+//       this.quotes});
+//   factory CoinData.fromJson(dynamic json) {
+//     return CoinData(
+//       id: json['id'],
+//       name: json['name'],
+//       symbol: json['symbol'],
+//       rank: json['rank'],
+//       circulating_supply: json['circulating_supply'],
+//       total_supply: json['total_supply'],
+//       max_supply: json['max_supply'],
+//       beta_value: json['beta_value'],
+//       quotes: parseQuotes(json['quotes']),
+//     );
+//   }
+//
+//   static List<dynamic> parseQuotes(quotesJson) {
+//     List<dynamic> quotesList = List<dynamic>.from(quotesJson);
+//     return quotesList;
+//   }
+// }
+//
+// class LoadFancyData {
+//   static const String requestURL = 'https://api.coinpaprika.com/v1/tickers/';
+//   Future<void> loadFancy() async {
+//     http.Response response = await http.get(Uri.parse(requestURL));
+//     // final jsonResponse = json.decode(response);
+//     List<dynamic> rateData = jsonDecode(response.body);
+//     CoinData coinData = CoinData.fromJson(rateData);
+//     print('id: ${coinData.id}');
+//   }
+// }
+//
+// class CurrencyDetails {
+//   // final double price;
+//   // final double volume_24h;
+//   // final double volume_24h_change_24h;
+//   // final double market_cap;
+//   // final double market_cap_change_24h;
+//   //
+//   // "price"
+//   // "volume_24h"
+//   // "volume_24h_change_24h"
+//   // "market_cap"
+//   // "market_cap_change_24h"
+//   // "percent_change_15m"
+//   // "percent_change_30m"
+//   // "percent_change_1h"
+//   // "percent_change_6h"
+//   // "percent_change_12h"
+//   // "percent_change_24h"
+//   // "percent_change_7d"
+//   // "percent_change_30d"
+//   // "percent_change_1y"
+//   // "ath_price"
+//
+// }

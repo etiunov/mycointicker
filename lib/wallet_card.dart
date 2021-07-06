@@ -285,6 +285,14 @@ class CoinStatement extends StatelessWidget {
                                 fontSize: 32.0, fontWeight: FontWeight.bold),
                           ),
                           Text(coinName),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _redeemButton('Redeem'),
+                              _redeemButton('Exchange'),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -303,7 +311,7 @@ class CoinStatement extends StatelessWidget {
                       itemCount: transactionsList.length,
                       itemBuilder: (context, index) {
                         return Padding(
-                          padding: const EdgeInsets.all(8.0),
+                          padding: const EdgeInsets.only(left: 8.0, right: 8.0),
                           child: Card(
                             elevation: 0,
                             child: ListTile(
@@ -320,6 +328,55 @@ class CoinStatement extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _redeemButton(String name) {
+    var _activeColor = CupertinoColors.activeBlue;
+    var _disabledColor = CupertinoColors.inactiveGray;
+
+    return GestureDetector(
+      onTap: () {
+        print(balance);
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              width: 1.0,
+              color: balance > 0 ? _activeColor : _disabledColor,
+            ),
+            borderRadius: BorderRadius.all(Radius.circular(8.0)),
+            color: balance > 0 ? _activeColor : _disabledColor,
+          ),
+          width: 100.0,
+          height: 40.0,
+          child: Align(
+            alignment: Alignment.center,
+            child: Text(
+              '$name',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16.0,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    CupertinoButton(
+      color: balance > 0 ? _activeColor : _disabledColor,
+      child: Text(
+        '$name',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16.0,
+        ),
+      ),
+      onPressed: () {
+        print(balance);
+      },
     );
   }
 }
@@ -397,13 +454,13 @@ class _CCardState extends State<CCard> {
                                       fontSize: 18.0,
                                       color: Colors.white),
                                 ),
-                                Text(
-                                  '${'+\$3.74'}',
-                                  style: TextStyle(
-                                      // fontWeight: FontWeight.bold,
-                                      fontSize: 14.0,
-                                      color: Colors.white70),
-                                ),
+                                // Text(
+                                //   '${'+\$3.74'}',
+                                //   style: TextStyle(
+                                //       // fontWeight: FontWeight.bold,
+                                //       fontSize: 14.0,
+                                //       color: Colors.white70),
+                                // ),
                               ],
                             ),
                           ),

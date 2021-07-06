@@ -168,7 +168,7 @@ class _CoinDetailsState extends State<CoinDetails> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: CupertinoPageScaffold(
-        child: _foundSymbols.length > 1
+        child: symbolsList.length > 1
             ? CustomScrollView(
                 shrinkWrap: true,
                 physics: const BouncingScrollPhysics(
